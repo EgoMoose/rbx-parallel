@@ -12,8 +12,10 @@ local scheduler = Parallel.new(32, {
 	typecast = (nil :: any) :: WorkerAction,
 })
 
+local nCount = scheduler:getActorCount() * 2
+
 local serialSum = 0
-for i = 1, scheduler:getActorCount() do
+for i = 1, nCount do
 	serialSum = serialSum + i * i
 end
 
@@ -21,7 +23,7 @@ scheduler:waitForReady()
 
 local results
 it("should successfully run", function()
-	for i = 1, scheduler:getActorCount() do
+	for i = 1, nCount do
 		scheduler:schedule(i)
 	end
 	results = scheduler:work()
