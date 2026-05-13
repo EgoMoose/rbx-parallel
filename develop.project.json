@@ -9,6 +9,12 @@
 				"Parallel": {
 					"$path": "default.project.json"
 				}
+			},
+			"DevPackages": {
+				"$path": "DevPackages",
+				"Tests": {
+					"$path": "tests"
+				}
 			}
 		}
 	}

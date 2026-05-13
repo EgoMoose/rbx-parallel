@@ -124,7 +124,6 @@ function ParallelClass.waitForReady<T..., U...>(self: Parallel<T..., U...>)
 end
 
 function ParallelClass.getActorCount<T..., U...>(self: Parallel<T..., U...>)
-	assert(self.isReadyFuture:isCompleted(), "Not ready!")
 	return #self.actorEntries
 end
 

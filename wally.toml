@@ -13,3 +13,7 @@ private = true
 [dependencies]
 Trove = "sleitnick/trove@=1.5.1"
 Future = "egomoose/future@1.0.0"
+
+[dev-dependencies]
+Jest = "jsdotlua/jest@3.10.0"
+JestGlobals = "jsdotlua/jest-globals@3.10.0"
