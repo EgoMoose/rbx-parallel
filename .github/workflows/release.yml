@@ -21,7 +21,7 @@ jobs:
         run: lune run wally-install
 
       - name: 🏗️ Build parallel.rbxm
-        run: rojo build standalone.project.json -o parallel-${{ github.ref_name }}.rbxm
+        run: lune run build-standalone parallel-${{ github.ref_name }}.rbxm
 
       - name: 🚀 Create Release
         env:

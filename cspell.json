@@ -5,6 +5,7 @@
     "dictionaries": [],
     "words": [
         "pcall",
+        "serde",
         "setmetatable"
     ],
     "ignoreWords": [],
