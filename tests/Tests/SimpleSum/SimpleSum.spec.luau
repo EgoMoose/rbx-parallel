@@ -26,7 +26,7 @@ it("should successfully run", function()
 	for i = 1, nCount do
 		scheduler:schedule(i)
 	end
-	results = scheduler:work()
+	results = scheduler:workAsync()
 end)
 
 local sum = 0

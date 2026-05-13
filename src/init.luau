@@ -148,7 +148,7 @@ function ParallelClass.clear<T..., U...>(self: Parallel<T..., U...>)
 	end
 end
 
-function ParallelClass.work<T..., U...>(self: Parallel<T..., U...>)
+function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 	assert(self.isReadyFuture:isCompleted(), "Not ready!")
 	assert(not self.isWorking, "Already working!")
 	self.isWorking = true

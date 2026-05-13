@@ -50,7 +50,7 @@ for i = 1, scheduler:getActorCount() * 2 do
 end
 
 -- then actually tell the actors to do the work
-local results = scheduler:work()
+local results = scheduler:workAsync()
 
 -- each actor's returned values are packed in a function to support the type-system
 local sum = 0
