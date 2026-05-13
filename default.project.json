@@ -1,0 +1,15 @@
+{
+	"name": "parallel",
+	"syncRules": [
+		{
+			"pattern": "LICENSE",
+			"use": "moduleScript"
+		}
+	],
+	"tree": {
+		"$path": "src",
+		"LICENSE": {
+			"$path": "LICENSE"
+		}
+	}
+}
