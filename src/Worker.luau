@@ -12,7 +12,17 @@ return function(script: LuaSourceContainer)
 
 	local workerAction = require(module) :: any
 	actor:BindToMessageParallel("Work", function(k, ...)
-		binding:Fire(k, workerAction(...))
+		local packedResults
+		local packedArgs = table.pack(...)
+		local success, err: string? = pcall(function()
+			packedResults = table.pack(workerAction(table.unpack(packedArgs, 1, packedArgs.n)))
+		end)
+
+		if success then
+			binding:Fire(k, true, table.unpack(packedResults, 1, packedResults.n))
+		else
+			binding:Fire(k, false, err or "UNKNOWN ERROR")
+		end
 	end)
 
 	actor:SetAttribute("IsReady", true)

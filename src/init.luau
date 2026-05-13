@@ -6,17 +6,10 @@ local RunService = game:GetService("RunService") :: RunService
 local Future = require(script.Parent.Future)
 local Trove = require(script.Parent.Trove)
 
-local MODULE_REF_FOLDER = Instance.new("Folder")
-MODULE_REF_FOLDER.Name = "ModuleRefs"
-MODULE_REF_FOLDER.Parent = script
+local Bootstrap = require(script.Bootstrap)
 
-local ROOT_REF_TEMPLATE = Instance.new("ObjectValue")
-ROOT_REF_TEMPLATE.Name = "RootRef"
-ROOT_REF_TEMPLATE.Value = script
-
-ROOT_REF_TEMPLATE:Clone().Parent = script.ClientWorker
-ROOT_REF_TEMPLATE:Clone().Parent = script.PluginWorker
-ROOT_REF_TEMPLATE:Clone().Parent = script.ServerWorker
+local MODULE_REFS_FOLDER = Bootstrap.createRefs()
+local IS_EDIT_MODE = Bootstrap.isEditMode()
 
 -- Class
 
@@ -64,11 +57,11 @@ function ParallelStatic.new<T..., U...>(n: number, required: Required<T..., U...
 	self.isWorking = false
 	self.isReadyFuture = Future.new()
 
-	local parent = script
 	local template = script.ClientWorker
+	local parent: Instance = MODULE_REFS_FOLDER
 	if script:FindFirstAncestorWhichIsA("Plugin") then
 		template = script.PluginWorker
-	elseif RunService:IsEdit() then
+	elseif IS_EDIT_MODE then
 		local tmpPlugin = PluginManager():CreatePlugin()
 		self.trove:Add(tmpPlugin)
 		template = script.PluginWorker
@@ -154,8 +147,15 @@ function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 	self.isWorking = true
 
 	local futures = {}
-	local connection = self.binding.Event:Connect(function(k: number, ...)
-		futures[k]:complete(Future.packAsCallback(...))
+	local connection = self.binding.Event:Connect(function(k: number, success: boolean, ...)
+		if success then
+			futures[k]:complete(Future.packAsCallback(...))
+		else
+			local err: string = ...
+			futures[k]:complete(function()
+				error("\n" .. err, 2)
+			end)
+		end
 	end)
 
 	for i, actorEntry in self.actorEntries do
