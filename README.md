@@ -18,7 +18,7 @@ An abstraction layer for actor-based parallel execution on Roblox.
 
 This project aims to give developers a quick, typed, relatively easy to way to structure and use parallel luau in their Roblox projects.
 
-Every task you write will require creating a worker file. This loaded into the scheduler and defines how each chunk of work is processed by an actor.
+Every task you write will require creating a worker file. This is loaded into the scheduler and defines how each chunk of work is processed by an actor.
 
 For example:
 
