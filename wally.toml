@@ -2,7 +2,7 @@
 name = "egomoose/parallel"
 description = "An abstraction layer for actor-based parallel execution on Roblox."
 repository = "https://github.com/EgoMoose/rbx-parallel"
-version = "0.1.1"
+version = "0.2.0"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 license = "MIT"
