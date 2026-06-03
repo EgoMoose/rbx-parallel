@@ -29,11 +29,12 @@ export type Parallel<T..., U...> = typeof(setmetatable(
 		trove: Trove.Trove,
 
 		ticket: number,
-		isWorking: boolean,
+
 		required: Required<T..., U...>,
 
 		binding: BindableEvent,
 		isReadyFuture: Future.Future<()>,
+		isWorkingFuture: Future.Future<()>,
 
 		actorEntries: {
 			{
@@ -54,8 +55,8 @@ function ParallelStatic.new<T..., U...>(n: number, required: Required<T..., U...
 	self.actorEntries = {}
 	self.required = required
 
-	self.isWorking = false
 	self.isReadyFuture = Future.new()
+	self.isWorkingFuture = Future.completed()
 
 	local template = script.ClientWorker
 	local parent: Instance = MODULE_REFS_FOLDER
@@ -112,8 +113,13 @@ end
 
 -- Public
 
+function ParallelClass.isWorking<T..., U...>(self: Parallel<T..., U...>)
+	return not self.isWorkingFuture:isCompleted()
+end
+
 function ParallelClass.waitForReady<T..., U...>(self: Parallel<T..., U...>)
 	self.isReadyFuture:expect()
+	self.isWorkingFuture:expect()
 end
 
 function ParallelClass.getActorCount<T..., U...>(self: Parallel<T..., U...>)
@@ -143,8 +149,8 @@ end
 
 function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 	assert(self.isReadyFuture:isCompleted(), "Not ready!")
-	assert(not self.isWorking, "Already working!")
-	self.isWorking = true
+	assert(not self:isWorking(), "Already working!")
+	self.isWorkingFuture = Future.new()
 
 	local futures = {}
 	local connection = self.binding.Event:Connect(function(k: number, success: boolean, ...)
@@ -176,7 +182,7 @@ function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 
 	connection:Disconnect()
 
-	self.isWorking = false
+	self.isWorkingFuture:complete()
 	return results
 end
 
