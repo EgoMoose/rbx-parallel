@@ -15,6 +15,8 @@ local IS_EDIT_MODE = Bootstrap.isEditMode()
 
 local ParallelStatic = {}
 
+local ParallelPrivate = {}
+
 local ParallelClass = {}
 ParallelClass.__index = ParallelClass
 ParallelClass.ClassName = "Parallel"
@@ -29,11 +31,21 @@ export type Parallel<T..., U...> = typeof(setmetatable(
 		trove: Trove.Trove,
 
 		ticket: number,
-		isWorking: boolean,
+
+		nActors: number,
 		required: Required<T..., U...>,
+
+		template: Script,
+		moduleRef: ObjectValue,
 
 		binding: BindableEvent,
 		isReadyFuture: Future.Future<()>,
+		isWorkingFuture: Future.Future<()>,
+
+		working: {
+			cancelled: boolean,
+			futures: { [number]: Future.Future<() -> U...> },
+		}?,
 
 		actorEntries: {
 			{
@@ -51,11 +63,10 @@ function ParallelStatic.new<T..., U...>(n: number, required: Required<T..., U...
 	self.trove = Trove.new()
 
 	self.ticket = 0
-	self.actorEntries = {}
+	self.nActors = n
 	self.required = required
 
-	self.isWorking = false
-	self.isReadyFuture = Future.new()
+	self.isWorkingFuture = Future.completed()
 
 	local template = script.ClientWorker
 	local parent: Instance = MODULE_REFS_FOLDER
@@ -70,24 +81,40 @@ function ParallelStatic.new<T..., U...>(n: number, required: Required<T..., U...
 		template = script.ServerWorker
 	end
 
+	self.template = template
+
 	local moduleRef = Instance.new("ObjectValue")
 	moduleRef.Name = `Parallel_{required.script.Name}`
 	moduleRef.Value = required.script
 	moduleRef.Archivable = false
 	moduleRef.Parent = parent
 	self.trove:Add(moduleRef)
+	self.moduleRef = moduleRef
 
 	self.binding = Instance.new("BindableEvent")
 	self.binding.Name = "Binding"
 	self.binding.Parent = moduleRef
 	self.trove:Add(self.binding)
 
-	for i = 1, n do
+	ParallelPrivate.buildActors(self)
+
+	return self
+end
+
+-- Private
+
+function ParallelPrivate.buildActors<T..., U...>(self: Parallel<T..., U...>)
+	local isReadyFuture = Future.new()
+
+	self.isReadyFuture = isReadyFuture
+	self.actorEntries = {}
+
+	for i = 1, self.nActors do
 		local actor = Instance.new("Actor")
 		actor.Name = tostring(i)
-		actor.Parent = moduleRef
+		actor.Parent = self.moduleRef
 
-		local worker = template:Clone()
+		local worker = self.template:Clone()
 		worker.Enabled = true
 		worker.Parent = actor
 
@@ -97,23 +124,27 @@ function ParallelStatic.new<T..., U...>(n: number, required: Required<T..., U...
 		}
 	end
 
+	local actorEntries = self.actorEntries
 	task.spawn(function()
-		for _, actorEntry in self.actorEntries do
+		for _, actorEntry in actorEntries do
 			while not actorEntry.actor:GetAttribute("IsReady") do
 				actorEntry.actor:GetAttributeChangedSignal("IsReady"):Wait()
 			end
 		end
 
-		self.isReadyFuture:complete()
+		isReadyFuture:complete()
 	end)
-
-	return self
 end
 
 -- Public
 
+function ParallelClass.isWorking<T..., U...>(self: Parallel<T..., U...>)
+	return not self.isWorkingFuture:isCompleted()
+end
+
 function ParallelClass.waitForReady<T..., U...>(self: Parallel<T..., U...>)
 	self.isReadyFuture:expect()
+	self.isWorkingFuture:expect()
 end
 
 function ParallelClass.getActorCount<T..., U...>(self: Parallel<T..., U...>)
@@ -143,8 +174,8 @@ end
 
 function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 	assert(self.isReadyFuture:isCompleted(), "Not ready!")
-	assert(not self.isWorking, "Already working!")
-	self.isWorking = true
+	assert(not self:isWorking(), "Already working!")
+	self.isWorkingFuture = Future.new()
 
 	local futures = {}
 	local connection = self.binding.Event:Connect(function(k: number, success: boolean, ...)
@@ -168,6 +199,13 @@ function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 
 	self:clear()
 
+	local working = {
+		cancelled = false,
+		futures = futures,
+	}
+
+	self.working = working
+
 	local results = {}
 	for i, future in futures do
 		local castedFuture = (future :: any) :: Future.Future<() -> U...>
@@ -176,8 +214,31 @@ function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 
 	connection:Disconnect()
 
-	self.isWorking = false
-	return results
+	self.working = nil
+	self.isWorkingFuture:complete()
+	return results, working.cancelled
+end
+
+function ParallelClass.cancelWork<T..., U...>(self: Parallel<T..., U...>)
+	local working = self.working
+
+	if working then
+		for _, actorEntry in self.actorEntries do
+			actorEntry.actor:Destroy()
+		end
+
+		ParallelPrivate.buildActors(self)
+		working.cancelled = true
+
+		for _, future in working.futures do
+			local castedFuture = (future :: any) :: Future.Future<() -> U...>
+			if not castedFuture:isCompleted() then
+				castedFuture:complete(function()
+					error("Work was cancelled", 2)
+				end)
+			end
+		end
+	end
 end
 
 function ParallelClass.Destroy<T..., U...>(self: Parallel<T..., U...>)

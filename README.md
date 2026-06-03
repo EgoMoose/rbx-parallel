@@ -61,3 +61,34 @@ end
 
 print(sum) -- 89440
 ```
+
+## Cancelling work
+
+In-flight work can be cancelled from another thread with `cancelWork`:
+
+```luau
+task.delay(1, function()
+	scheduler:cancelWork()
+end)
+
+local results, cancelled = scheduler:workAsync()
+```
+
+When a batch is cancelled, `workAsync` returns early with whatever results completed before the cancellation alongside `cancelled = true`. Unpacking a result that did not complete will error with `"Work was cancelled"`:
+
+```luau
+for _, unpackResult in results do
+	local success, result = pcall(unpackResult)
+	if success then
+		-- this item finished before the cancellation
+	end
+end
+```
+
+Since each actor runs in its own Luau VM, in-flight work cannot be preempted directly. Instead, cancelling destroys the actors, which kills both queued and currently executing work, and then rebuilds them. This resets readiness, so `waitForReady` must be called before scheduling work again:
+
+```luau
+scheduler:cancelWork()
+scheduler:waitForReady()
+scheduler:schedule(...)
+```
