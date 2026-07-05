@@ -11,7 +11,7 @@ return function(script: LuaSourceContainer)
 	assert(binding:IsA("BindableEvent"), "Not a BindableEvent.")
 
 	local workerAction = require(module) :: any
-	actor:BindToMessageParallel("Work", function(k, ...)
+	local function work(k: number, ...: any)
 		local packedResults
 		local packedArgs = table.pack(...)
 		local success, err: string? = pcall(function()
@@ -23,7 +23,10 @@ return function(script: LuaSourceContainer)
 		else
 			binding:Fire(k, false, err or "UNKNOWN ERROR")
 		end
-	end)
+	end
+
+	actor:BindToMessageParallel("workParallel", work)
+	actor:BindToMessage("workSerial", work)
 
 	actor:SetAttribute("IsReady", true)
 end

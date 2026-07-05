@@ -73,6 +73,7 @@ function ParallelStatic.new<T..., U...>(n: number, required: Required<T..., U...
 	if script:FindFirstAncestorWhichIsA("Plugin") then
 		template = script.PluginWorker
 	elseif IS_EDIT_MODE then
+		-- selene: allow(undefined_variable)
 		local tmpPlugin = PluginManager():CreatePlugin()
 		self.trove:Add(tmpPlugin)
 		template = script.PluginWorker
@@ -172,7 +173,7 @@ function ParallelClass.clear<T..., U...>(self: Parallel<T..., U...>)
 	end
 end
 
-function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
+function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>, context: ("parallel" | "serial")?)
 	assert(self.isReadyFuture:isCompleted(), "Not ready!")
 	assert(not self:isWorking(), "Already working!")
 	self.isWorkingFuture = Future.new()
@@ -189,11 +190,12 @@ function ParallelClass.workAsync<T..., U...>(self: Parallel<T..., U...>)
 		end
 	end)
 
+	local msg = if context == "serial" then "workSerial" else "workParallel"
 	for i, actorEntry in self.actorEntries do
 		for j, unpackArgs in actorEntry.scheduled do
 			local k = ((j - 1) * #self.actorEntries) + i
 			futures[k] = Future.new()
-			actorEntry.actor:SendMessage("Work", k, unpackArgs())
+			actorEntry.actor:SendMessage(msg, k, unpackArgs())
 		end
 	end
 
