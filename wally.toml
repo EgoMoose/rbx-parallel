@@ -2,12 +2,19 @@
 name = "egomoose/parallel"
 description = "An abstraction layer for actor-based parallel execution on Roblox."
 repository = "https://github.com/EgoMoose/rbx-parallel"
-version = "0.3.0"
+version = "0.3.1"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 license = "MIT"
 exclude = ["**"]
-include = ["src", "src/**", "wally.toml", "wally.lock", "default.project.json", "LICENSE"]
+include = [
+	"src",
+	"src/**",
+	"wally.toml",
+	"wally.lock",
+	"default.project.json",
+	"LICENSE",
+]
 
 [dependencies]
 Trove = "sleitnick/trove@=1.5.1"
