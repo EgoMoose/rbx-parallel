@@ -144,8 +144,10 @@ function ParallelClass.isWorking<T..., U...>(self: Parallel<T..., U...>)
 end
 
 function ParallelClass.waitForReady<T..., U...>(self: Parallel<T..., U...>)
-	self.isReadyFuture:expect()
-	self.isWorkingFuture:expect()
+	while not self.isReadyFuture:isCompleted() or self:isWorking() do
+		self.isReadyFuture:expect()
+		self.isWorkingFuture:expect()
+	end
 end
 
 function ParallelClass.getActorCount<T..., U...>(self: Parallel<T..., U...>)
